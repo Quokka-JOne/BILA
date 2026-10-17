@@ -5,8 +5,10 @@ import { ButtonLink } from '@/components/bila/button'
 import { EmptyState } from '@/components/bila/empty-state'
 import { NeutralTag, StatusTag } from '@/components/bila/status-tag'
 import { getLinkedDevices, getProfile, requireUser, type Profile } from '@/lib/session'
+import { DEMO_MODE } from '@/lib/demo'
+import { VitalsMonitor } from '@/components/space/vitals-monitor'
 
-export const metadata: Metadata = { title: 'Mi espacio' }
+export const metadata: Metadata = { title: 'Home' }
 
 const ROLE_LABEL: Record<Profile['role'], string> = {
   persona: 'Persona registrada',
@@ -69,6 +71,7 @@ export default async function SpacePage() {
     <div className="space-y-8">
       {/* Header greeting */}
       <div className="space-y-3">
+        <p className="text-sm font-semibold text-ink-soft">Home / Mi espacio</p>
         <NeutralTag>{ROLE_LABEL[profile.role]}</NeutralTag>
         <h1 className="text-balance text-3xl font-bold text-navy sm:text-4xl">
           Hola, {profile.firstName}
@@ -78,11 +81,12 @@ export default async function SpacePage() {
         )}
       </div>
 
+      {DEMO_MODE && <VitalsMonitor deviceType={profile.deviceType} />}
+
       {/* Verification alerts */}
       {profile.verificationStatus === 'pending' && (
         <Alert tone="warning" title="Tu solicitud está pendiente de verificación">
-          Hasta que tu organización confirme tu identidad y afiliación, tu cuenta no tendrá
-          permisos operativos. Te avisaremos al correo {user.email} cuando haya una decisión.
+          {DEMO_MODE ? 'Solicitud enviada para comprobación. En esta demostración puedes explorar Home; no se contacta a tu organización ni se envían correos.' : `Hasta que tu organización confirme tu identidad y afiliación, tu cuenta no tendrá permisos operativos. Te avisaremos al correo ${user.email} cuando haya una decisión.`}
         </Alert>
       )}
       {profile.verificationStatus === 'rejected' && (
@@ -172,13 +176,14 @@ export default async function SpacePage() {
         <div className="flex flex-wrap gap-2">
           {profile.verificationStatus === 'pending' && <StatusTag kind="pending" />}
           {profile.verificationStatus === 'approved' && <StatusTag kind="verified" />}
-          {profile.role === 'persona' && devices.length > 0 && (
+          {profile.role === 'persona' && (devices.length > 0 || profile.deviceType) && (
             <StatusTag kind="wearable-linked" />
           )}
-          {profile.role === 'persona' && devices.length === 0 && (
+          {profile.role === 'persona' && devices.length === 0 && !profile.deviceType && (
             <NeutralTag>Sin dispositivo asociado</NeutralTag>
           )}
         </div>
+        {profile.deviceType && <p className="text-sm text-ink-soft">Tipo de dispositivo: <strong className="text-navy">{profile.deviceType === 'pulsera' ? 'Pulsera' : 'Anillo'}</strong>{DEMO_MODE && ' · Simulado'}</p>}
         {devices.length > 0 && (
           <p className="flex items-center gap-2 text-sm text-ink-soft">
             <Watch aria-hidden="true" className="size-4" />

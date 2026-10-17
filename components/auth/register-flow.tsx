@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Stepper } from '@/components/bila/stepper'
 import { authErrorMessage, createAccount } from '@/lib/auth-client'
 import { ProfileCoordinator } from './profile-coordinator'
@@ -8,7 +9,7 @@ import { ProfilePersona } from './profile-persona'
 import { ProfileRescuer } from './profile-rescuer'
 import type { AccountValues, ProfileDrafts, Role } from './register-types'
 import { StepAccount } from './step-account'
-import { StepConfirmation } from './step-confirmation'
+import { RequestSentDialog } from './request-sent-dialog'
 import { StepRole } from './step-role'
 
 const STEPS = ['Cuenta', 'Tipo de cuenta', 'Perfil', 'Confirmación'] as const
@@ -22,6 +23,7 @@ const emptyAccount: AccountValues = {
 }
 
 export function RegisterFlow() {
+  const router = useRouter()
   const [step, setStep] = useState(0)
   const [account, setAccount] = useState<AccountValues>(emptyAccount)
   const [role, setRole] = useState<Role | ''>('')
@@ -53,7 +55,10 @@ export function RegisterFlow() {
         role: selected,
         profile: values,
       })
-      setStep(3)
+      if (selected === 'persona') {
+        router.replace('/espacio')
+        router.refresh()
+      } else setStep(3)
     } catch (caught) {
       setError(authErrorMessage(caught))
     } finally {
@@ -125,7 +130,7 @@ export function RegisterFlow() {
         />
       )}
 
-      {step === 3 && role && <StepConfirmation role={role} email={account.email.trim()} />}
+      <RequestSentDialog open={step === 3} onContinue={() => { router.replace('/espacio'); router.refresh() }} />
     </div>
   )
 }

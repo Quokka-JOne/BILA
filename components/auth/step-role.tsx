@@ -7,6 +7,7 @@ import { RoleCard } from '@/components/bila/role-card'
 import { StepActions } from './step-actions'
 import { StepHeading } from './step-heading'
 import type { Role } from './register-types'
+import { DEMO_MODE } from '@/lib/demo'
 
 const roles = [
   {
@@ -72,7 +73,7 @@ export function StepRole({
                 setError('')
               }}
               {...item}
-              note={'note' in item ? item.note : undefined}
+              note={'note' in item ? (DEMO_MODE ? 'Comprobación simulada' : item.note) : undefined}
             />
           ))}
         </div>
@@ -80,9 +81,8 @@ export function StepRole({
 
       {error && <Alert tone="error" title={error} />}
 
-      <Alert tone="info" title="Elegir un tipo no concede permisos">
-        Las cuentas de rescatista y de coordinador se activan solo después de verificar tu identidad y
-        tu afiliación con tu organización.
+      <Alert tone="info" title={DEMO_MODE ? 'Explora los tres tipos de cuenta' : 'Elegir un tipo no concede permisos'}>
+        {DEMO_MODE ? 'Completa el perfil para entrar a Home. Para rescatistas y coordinadores mostraremos una solicitud de comprobación simulada, sin contactar a ninguna organización.' : 'Las cuentas de rescatista y de coordinador se activan solo después de verificar tu identidad y tu afiliación con tu organización.'}
       </Alert>
 
       <StepActions nextLabel="Continuar" onBack={onBack} />

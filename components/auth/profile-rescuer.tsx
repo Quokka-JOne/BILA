@@ -8,6 +8,7 @@ import { validateEmailOrPhone, validateRequired } from '@/lib/validation'
 import { StepActions } from './step-actions'
 import { StepHeading } from './step-heading'
 import type { ProfileFormProps, RescuerValues } from './register-types'
+import { DEMO_MODE } from '@/lib/demo'
 
 const empty: RescuerValues = { organization: '', professionalId: '', verifier: '', consent: false }
 
@@ -36,7 +37,7 @@ export function ProfileRescuer({
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-6">
       <StepHeading title="Solicita tu verificación">
-        Confirmaremos tu identidad y tu afiliación antes de activar herramientas operativas.
+        {DEMO_MODE ? 'Completa un perfil de ejemplo para conocer cómo sería la solicitud de comprobación.' : 'Confirmaremos tu identidad y tu afiliación antes de activar herramientas operativas.'}
       </StepHeading>
 
       {error && <Alert tone="error" title="No pudimos enviar tu solicitud">{error}</Alert>}
@@ -78,7 +79,7 @@ export function ProfileRescuer({
 
       <CheckboxField
         label="Autorizo a BILA a verificar mi identidad y afiliación"
-        description="Tu cuenta quedará pendiente hasta completar la verificación."
+        description={DEMO_MODE ? 'La comprobación es simulada; no se contactará a ninguna organización.' : 'Tu cuenta quedará pendiente hasta completar la verificación.'}
         {...form.check('consent')}
       />
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { Alert } from '@/components/bila/alert'
-import { CheckboxField, TextAreaField, TextField } from '@/components/bila/fields'
+import { CheckboxField, SelectField, TextAreaField, TextField } from '@/components/bila/fields'
 import { FormSection, WhyWeAsk } from '@/components/bila/info-card'
 import { useForm } from '@/lib/use-form'
 import { validatePhone, validateRequired } from '@/lib/validation'
@@ -18,7 +18,7 @@ const empty: PersonaValues = {
   medicalNotes: '',
   shareMedical: false,
   shareLocation: false,
-  deviceCode: '',
+  deviceType: '',
 }
 
 export function ProfilePersona({
@@ -123,15 +123,13 @@ export function ProfilePersona({
 
       <FormSection
         title="Dispositivo BILA"
-        description="Si ya tienes una pulsera o anillo BILA, puedes asociarlo ahora. También puedes hacerlo más tarde."
+        description="Elige el dispositivo que utilizarás con BILA. También puedes hacerlo más tarde."
       >
-        <TextField
-          label="Código del dispositivo"
+        <SelectField
+          label="Tipo de dispositivo"
           optional
-          autoComplete="off"
-          autoCapitalize="characters"
-          placeholder="Impreso en tu pulsera o anillo"
-          {...form.field('deviceCode')}
+          options={[{ value: 'pulsera', label: 'Pulsera' }, { value: 'anillo', label: 'Anillo' }]}
+          {...form.field('deviceType')}
         />
       </FormSection>
 

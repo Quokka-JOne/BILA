@@ -1,9 +1,25 @@
 'use client'
 
 import { createAuthClient } from 'better-auth/react'
+import { DEMO_MODE } from '@/lib/demo'
 import type { CoordinatorValues, PersonaValues, RescuerValues, Role } from '@/components/auth/register-types'
 
 export const authClient = createAuthClient()
+
+async function demoRequest(body: object) {
+  try {
+    const response = await fetch('/api/demo/session', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    })
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}))
+      throw new AuthError(result.error === 'invalid_credentials' ? 'invalid_credentials' : result.error === 'invalid_profile' ? 'invalid_profile' : 'unknown')
+    }
+  } catch (error) {
+    if (error instanceof AuthError) throw error
+    throw new AuthError(navigator.onLine ? 'unknown' : 'offline')
+  }
+}
 
 export type AuthErrorCode =
   | 'offline'
@@ -43,6 +59,7 @@ export async function signIn(credentials: {
   remember: boolean
 }): Promise<void> {
   assertOnline()
+  if (DEMO_MODE) return demoRequest({ action: 'login', ...credentials })
   let result
   try {
     result = await authClient.signIn.email({
@@ -51,79 +68,21 @@ export async function signIn(credentials: {
       rememberMe: credentials.remember,
     })
   } catch (error) {
-    console.warn('[BILA] Base de datos o auth no disponible, iniciando sesión local:', error)
+    throw new AuthError(navigator.onLine ? 'unknown' : 'offline')
   }
-
-  // Si Better Auth funcionó correctamente y sin errores:
-  if (result && !result.error) {
-    try {
-      const profileRes = await fetch('/api/profile')
-      const profileData = await profileRes.json()
-      const p = profileData?.profile
-      await fetch('/api/demo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: result.data?.user?.id,
-          email: credentials.email,
-          role: p?.role || 'coordinador',
-          firstName: p?.first_name || credentials.email.split('@')[0],
-          lastName: p?.last_name || '',
-          organization: p?.organization || null,
-          verificationStatus: p?.verification_status || 'approved',
-        }),
-      })
-    } catch {
-      await fetch('/api/demo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: credentials.email,
-          role: 'coordinador',
-          firstName: credentials.email.split('@')[0],
-          lastName: '(Usuario)',
-        }),
-      }).catch(() => undefined)
-    }
-    return
+  if (result?.error) {
+    throw mapAuthError(result.error)
   }
-
-  // Si falló por error de servidor o conexión a base de datos (status 500 o similar)
-  // o si estamos en desarrollo o modo fallback:
-  const isServerOrDbError =
-    !result ||
-    result?.error?.status === 500 ||
-    result?.error?.status === 503 ||
-    result?.error?.message?.toLowerCase().includes('database') ||
-    result?.error?.message?.toLowerCase().includes('schema') ||
-    result?.error?.message?.toLowerCase().includes('failed to fetch')
-
-  if (isServerOrDbError || process.env.NODE_ENV === 'development') {
-    console.warn('[BILA] Base de datos no disponible o dev, permitiendo acceso local:', result?.error)
-    await fetch('/api/demo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: credentials.email,
-        role: 'coordinador',
-        firstName: credentials.email.split('@')[0],
-        lastName: '(Usuario)',
-      }),
-    }).catch(() => undefined)
-    return
-  }
-
-  throw mapAuthError(result?.error)
 }
 
 export async function signOut(): Promise<void> {
+  if (DEMO_MODE) {
+    const response = await fetch('/api/demo/session', { method: 'DELETE' })
+    if (!response.ok) throw new AuthError('unknown')
+    return
+  }
   try {
-    await authClient.signOut().catch(() => undefined)
-    await fetch('/api/demo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'logout' }),
-    }).catch(() => undefined)
+    await authClient.signOut()
   } catch (error) {
     console.warn('[BILA] Error al cerrar sesión:', error)
   }
@@ -146,6 +105,7 @@ type NewAccount = {
 
 export async function createAccount(payload: NewAccount): Promise<void> {
   assertOnline()
+  if (DEMO_MODE) return demoRequest({ action: 'register', ...payload })
   const email = payload.email.trim().toLowerCase()
 
   try {
@@ -153,36 +113,17 @@ export async function createAccount(payload: NewAccount): Promise<void> {
     const alreadySignedUp = existing?.data?.user?.email?.toLowerCase() === email
 
     if (!alreadySignedUp) {
-      await authClient.signUp.email({
+      const result = await authClient.signUp.email({
         name: `${payload.firstName.trim()} ${payload.lastName.trim()}`.trim(),
         email,
         password: payload.password,
-      }).catch((e) => {
-        console.warn('[BILA] Fallback al crear usuario con Better Auth:', e)
-        return { error: null }
       })
+      if (result?.error) {
+        throw mapAuthError(result.error)
+      }
     }
 
-    // Registrar siempre en la cookie de sesión local
-    const org =
-      'organization' in payload.profile
-        ? (payload.profile as unknown as { organization?: string }).organization
-        : null
-
-    await fetch('/api/demo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email,
-        role: payload.role,
-        firstName: payload.firstName,
-        lastName: payload.lastName,
-        organization: org,
-        verificationStatus: payload.role === 'persona' ? 'not_required' : 'approved',
-      }),
-    }).catch(() => undefined)
-
-    await fetch('/api/profile', {
+    const response = await fetch('/api/profile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -191,9 +132,17 @@ export async function createAccount(payload: NewAccount): Promise<void> {
         lastName: payload.lastName,
         profile: payload.profile,
       }),
-    }).catch(() => null)
+    })
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string }
+      if (body.error === 'device_taken') throw new AuthError('device_taken')
+      if (body.error === 'invalid_profile') throw new AuthError('invalid_profile')
+      throw new AuthError('unknown')
+    }
   } catch (error) {
-    console.warn('[BILA] Registro completado en modo local:', error)
+    if (error instanceof AuthError) throw error
+    throw new AuthError(navigator.onLine ? 'unknown' : 'offline')
   }
 }
 

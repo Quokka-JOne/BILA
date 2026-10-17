@@ -1,7 +1,6 @@
 import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { pool } from '@/lib/db'
+import { DEMO_MODE } from '@/lib/demo'
 
 type Body = {
   role?: unknown
@@ -16,6 +15,9 @@ const text = (value: unknown, max = 200) =>
 const bad = (error: string, status = 400) => NextResponse.json({ error }, { status })
 
 export async function POST(request: Request) {
+  if (DEMO_MODE) return bad('demo_mode', 404)
+  const { auth } = await import('@/lib/auth')
+  const { pool } = await import('@/lib/db')
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) return bad('unauthorized', 401)
 
@@ -41,10 +43,7 @@ export async function POST(request: Request) {
   try {
     client = await pool.connect()
   } catch (err) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[BILA Dev] DB desconectada en /api/profile, simulando guardado exitoso:', err)
-      return NextResponse.json({ ok: true, devMode: true })
-    }
+    console.error('[BILA] No se pudo conectar a la base de datos:', err)
     return bad('unknown', 500)
   }
 
@@ -58,6 +57,11 @@ export async function POST(request: Request) {
     }
 
     if (role === 'persona') {
+      const deviceType = text(profile.deviceType, 20)
+      if (deviceType && deviceType !== 'pulsera' && deviceType !== 'anillo') {
+        await client.query('ROLLBACK')
+        return bad('invalid_profile')
+      }
       const emergencyName = text(profile.emergencyName)
       const emergencyPhone = text(profile.emergencyPhone, 40)
       if (!emergencyName || !emergencyPhone) {
@@ -66,9 +70,9 @@ export async function POST(request: Request) {
       }
 
       await client.query(
-        `INSERT INTO profiles (user_id, role, first_name, last_name, verification_status)
-         VALUES ($1, 'persona', $2, $3, 'not_required')`,
-        [userId, firstName, lastName],
+        `INSERT INTO profiles (user_id, role, first_name, last_name, verification_status, device_type)
+         VALUES ($1, 'persona', $2, $3, 'not_required', $4)`,
+        [userId, firstName, lastName, deviceType || null],
       )
 
       const birthDate = text(profile.birthDate, 10)
@@ -137,6 +141,9 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
+  if (DEMO_MODE) return bad('demo_mode', 404)
+  const { auth } = await import('@/lib/auth')
+  const { pool } = await import('@/lib/db')
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) return bad('unauthorized', 401)
 

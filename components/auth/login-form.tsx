@@ -1,14 +1,15 @@
 'use client'
 
-import { CircleCheck } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Alert } from '@/components/bila/alert'
 import { Button, ButtonLink } from '@/components/bila/button'
 import { CheckboxField, PasswordField, TextField } from '@/components/bila/fields'
 import { authErrorMessage, signIn } from '@/lib/auth-client'
 import { useForm } from '@/lib/use-form'
-import { validateEmail, validateRequired } from '@/lib/validation'
+import { passwordMeetsRules, validateEmail, validateRequired } from '@/lib/validation'
+import { DEMO_MODE } from '@/lib/demo'
 import { StepHeading } from './step-heading'
 
 type Status = 'idle' | 'loading' | 'success'
@@ -16,22 +17,13 @@ type Status = 'idle' | 'loading' | 'success'
 export function LoginForm() {
   const [status, setStatus] = useState<Status>('idle')
   const [formError, setFormError] = useState('')
-  const successRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
 
   const form = useForm({ email: '', password: '', remember: false }, (values) => ({
     email: validateEmail(values.email),
-    password: validateRequired(values.password, 'Escribe tu contraseña.'),
+    password: validateRequired(values.password, 'Escribe tu contraseña.') ||
+      (DEMO_MODE && !passwordMeetsRules(values.password) ? 'Usa al menos 10 caracteres, una mayúscula, una minúscula y un número.' : undefined),
   }))
-
-  useEffect(() => {
-    if (status === 'success') {
-      successRef.current?.querySelector<HTMLElement>('[data-step-heading]')?.focus()
-      const timer = setTimeout(() => {
-        window.location.href = '/espacio'
-      }, 700)
-      return () => clearTimeout(timer)
-    }
-  }, [status])
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -45,48 +37,12 @@ export function LoginForm() {
         remember: form.values.remember,
       })
       setStatus('success')
+      router.replace('/espacio')
+      router.refresh()
     } catch (error) {
       setFormError(authErrorMessage(error))
       setStatus('idle')
     }
-  }
-
-  async function handleDemoCoordinator() {
-    if (status === 'loading') return
-    setStatus('loading')
-    try {
-      await fetch('/api/demo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          role: 'coordinador',
-          email: 'coordinador@bila.org',
-          firstName: 'Elena',
-          lastName: 'Morales',
-          organization: 'Centro de Operaciones de Emergencia BILA',
-          verificationStatus: 'approved',
-        }),
-      })
-      setStatus('success')
-    } catch {
-      window.location.href = '/espacio'
-    }
-  }
-
-  if (status === 'success') {
-    return (
-      <div ref={successRef} className="space-y-6" role="status">
-        <span className="grid size-14 place-items-center rounded-2xl bg-success-soft text-success">
-          <CircleCheck aria-hidden="true" className="size-8" />
-        </span>
-        <StepHeading title="Sesión iniciada">
-          Entrando a tu espacio seguro de BILA.
-        </StepHeading>
-        <ButtonLink href="/espacio" className="w-full">
-          Continuar a mi espacio
-        </ButtonLink>
-      </div>
-    )
   }
 
   const email = form.field('email')
@@ -119,7 +75,7 @@ export function LoginForm() {
           autoComplete="current-password"
           {...password}
           footer={
-            <p className="mt-3 text-right text-sm">
+            DEMO_MODE ? <p className="mt-3 text-sm text-ink-soft">Usa cualquier correo válido y una contraseña de al menos 10 caracteres, con mayúscula, minúscula y número. No necesitas una cuenta previa.</p> : <p className="mt-3 text-right text-sm">
               <Link href="/recuperar" className="bila-link">
                 ¿Olvidaste tu contraseña?
               </Link>
@@ -134,20 +90,10 @@ export function LoginForm() {
         />
 
         <div className="space-y-3 pt-2">
-          <Button type="submit" loading={status === 'loading'} loadingLabel="Verificando…" className="w-full">
+          <Button type="submit" loading={status !== 'idle'} loadingLabel="Entrando…" className="w-full">
             Iniciar sesión
           </Button>
 
-          <Button
-            type="button"
-            variant="secondary"
-            loading={status === 'loading'}
-            loadingLabel="Entrando como coordinador…"
-            onClick={handleDemoCoordinator}
-            className="w-full"
-          >
-            Entrar como Coordinador (Modo Demo)
-          </Button>
         </div>
       </form>
 

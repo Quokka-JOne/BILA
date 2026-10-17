@@ -8,6 +8,7 @@ import { validateEmailOrPhone, validateRequired } from '@/lib/validation'
 import { StepActions } from './step-actions'
 import { StepHeading } from './step-heading'
 import type { CoordinatorValues, ProfileFormProps } from './register-types'
+import { DEMO_MODE } from '@/lib/demo'
 
 const empty: CoordinatorValues = { organization: '', position: '', approver: '', consent: false }
 
@@ -37,7 +38,7 @@ export function ProfileCoordinator({
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-6">
       <StepHeading title="Solicita tu aprobación">
-        Los permisos de coordinación requieren la aprobación administrativa de tu organización.
+        {DEMO_MODE ? 'Completa un perfil de ejemplo para explorar la experiencia de coordinación.' : 'Los permisos de coordinación requieren la aprobación administrativa de tu organización.'}
       </StepHeading>
 
       {error && <Alert tone="error" title="No pudimos enviar tu solicitud">{error}</Alert>}
@@ -77,7 +78,7 @@ export function ProfileCoordinator({
 
       <CheckboxField
         label="Autorizo a BILA a contactar a mi organización para revisar esta solicitud"
-        description="Tu cuenta quedará pendiente hasta recibir la aprobación."
+        description={DEMO_MODE ? 'La aprobación es simulada; no se enviarán mensajes a tu organización.' : 'Tu cuenta quedará pendiente hasta recibir la aprobación.'}
         {...form.check('consent')}
       />
 

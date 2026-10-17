@@ -12,9 +12,10 @@ import { Lockup } from '@/components/brand/logo'
 import { SignOutButton } from '@/components/space/sign-out-button'
 import { requireUser, getProfile } from '@/lib/session'
 import { redirect } from 'next/navigation'
+import { DemoNotice } from '@/components/bila/demo-notice'
 
 const NAV_ITEMS = [
-  { href: '/espacio', icon: LayoutDashboard, label: 'Panel' },
+  { href: '/espacio', icon: LayoutDashboard, label: 'Home' },
   { href: '/espacio/mapa', icon: MapPin, label: 'Mapa' },
   { href: '/espacio/personas', icon: Search, label: 'Personas' },
   { href: '/espacio/recursos', icon: Package, label: 'Recursos' },
@@ -95,6 +96,7 @@ export default async function SpaceLayout({ children }: { children: ReactNode })
 
       {/* Main content area */}
       <main id="contenido" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-7"><DemoNotice /></div>
         {children}
       </main>
     </div>

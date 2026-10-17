@@ -2,8 +2,8 @@
 -- BILA · Esquema de base de datos
 -- ============================================================
 
--- Tablas para better-auth (se crean automáticamente, pero
--- las incluimos como referencia)
+-- Las tablas de better-auth se crean mediante sus migraciones.
+-- npm run db:local aplica esas migraciones antes de este esquema.
 
 -- Perfiles de usuario
 CREATE TABLE IF NOT EXISTS profiles (
@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS profiles (
     CHECK (verification_status IN ('not_required', 'pending', 'approved', 'rejected')),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS device_type TEXT
+  CHECK (device_type IN ('pulsera', 'anillo'));
 
 -- Detalles de perfil persona
 CREATE TABLE IF NOT EXISTS persona_details (

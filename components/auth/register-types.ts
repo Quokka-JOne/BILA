@@ -17,7 +17,7 @@ export type PersonaValues = {
   medicalNotes: string
   shareMedical: boolean
   shareLocation: boolean
-  deviceCode: string
+  deviceType: string
 }
 
 export type RescuerValues = {
