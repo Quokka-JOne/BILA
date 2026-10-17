@@ -37,7 +37,16 @@ export async function POST(request: Request) {
   if (!firstName || !lastName) return bad('invalid_profile')
 
   const userId = session.user.id
-  const client = await pool.connect()
+  let client
+  try {
+    client = await pool.connect()
+  } catch (err) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[BILA Dev] DB desconectada en /api/profile, simulando guardado exitoso:', err)
+      return NextResponse.json({ ok: true, devMode: true })
+    }
+    return bad('unknown', 500)
+  }
 
   try {
     await client.query('BEGIN')

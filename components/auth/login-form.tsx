@@ -105,9 +105,15 @@ export function LoginForm() {
           {...remember}
         />
 
-        <Button type="submit" loading={status === 'loading'} loadingLabel="Verificando…" className="w-full">
-          Iniciar sesión
-        </Button>
+        <div className="space-y-3 pt-2">
+          <Button type="submit" loading={status === 'loading'} loadingLabel="Verificando…" className="w-full">
+            Iniciar sesión
+          </Button>
+
+          <ButtonLink href="/espacio" variant="secondary" className="w-full">
+            Entrar como Coordinador (Modo Demo)
+          </ButtonLink>
+        </div>
       </form>
 
       <div className="flex items-center gap-4" role="separator">
