@@ -48,6 +48,33 @@ const demoProfiles: Record<
   },
 }
 
+function getBaseUrl(request: Request): string {
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const host = forwardedHost || request.headers.get('host')
+
+  if (host && !host.includes(':10000')) {
+    const proto =
+      request.headers.get('x-forwarded-proto') ||
+      (host.includes('localhost') ? 'http' : 'https')
+    return `${proto}://${host}`
+  }
+
+  if (process.env.RENDER_EXTERNAL_URL) {
+    return process.env.RENDER_EXTERNAL_URL
+  }
+
+  if (process.env.BETTER_AUTH_URL && !process.env.BETTER_AUTH_URL.includes(':10000')) {
+    return process.env.BETTER_AUTH_URL
+  }
+
+  const origin = new URL(request.url).origin
+  if (origin.includes(':10000')) {
+    return 'https://bila-8lja.onrender.com'
+  }
+
+  return origin
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const action = url.searchParams.get('action')
@@ -56,14 +83,14 @@ export async function GET(request: Request) {
   if (action === 'logout') {
     const cookieStore = await cookies()
     cookieStore.delete('bila_session')
-    const res = NextResponse.redirect(new URL('/', request.url))
+    const res = NextResponse.redirect(new URL('/', getBaseUrl(request)))
     res.cookies.delete('bila_session')
     return res
   }
 
   const profile = demoProfiles[role] ?? demoProfiles.coordinador
 
-  const redirectUrl = new URL('/espacio', request.url)
+  const redirectUrl = new URL('/espacio', getBaseUrl(request))
   const response = NextResponse.redirect(redirectUrl)
 
   const cookieValue = JSON.stringify(profile)

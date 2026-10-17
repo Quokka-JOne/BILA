@@ -22,6 +22,8 @@ const NAV_ITEMS = [
   { href: '/espacio/equipo', icon: Users, label: 'Equipo' },
 ]
 
+export const dynamic = 'force-dynamic'
+
 export default async function SpaceLayout({ children }: { children: ReactNode }) {
   const user = await requireUser()
   const profile = await getProfile(user.id)

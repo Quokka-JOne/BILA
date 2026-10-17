@@ -135,3 +135,24 @@ export async function POST(request: Request) {
     client.release()
   }
 }
+
+export async function GET() {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session?.user) return bad('unauthorized', 401)
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT role, first_name, last_name, organization, position_title, professional_id, verification_status
+       FROM profiles WHERE user_id = $1`,
+      [session.user.id],
+    )
+    if (rows.length > 0) {
+      return NextResponse.json({ profile: rows[0] })
+    }
+    return NextResponse.json({ profile: null })
+  } catch (error) {
+    console.error('[bila] error fetching profile:', error)
+    return bad('database_error', 500)
+  }
+}
+

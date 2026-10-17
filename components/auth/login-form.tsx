@@ -51,6 +51,28 @@ export function LoginForm() {
     }
   }
 
+  async function handleDemoCoordinator() {
+    if (status === 'loading') return
+    setStatus('loading')
+    try {
+      await fetch('/api/demo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: 'coordinador',
+          email: 'coordinador@bila.org',
+          firstName: 'Elena',
+          lastName: 'Morales',
+          organization: 'Centro de Operaciones de Emergencia BILA',
+          verificationStatus: 'approved',
+        }),
+      })
+      setStatus('success')
+    } catch {
+      window.location.href = '/espacio'
+    }
+  }
+
   if (status === 'success') {
     return (
       <div ref={successRef} className="space-y-6" role="status">
@@ -116,9 +138,16 @@ export function LoginForm() {
             Iniciar sesión
           </Button>
 
-          <ButtonLink href="/api/demo?role=coordinador" variant="secondary" className="w-full">
+          <Button
+            type="button"
+            variant="secondary"
+            loading={status === 'loading'}
+            loadingLabel="Entrando como coordinador…"
+            onClick={handleDemoCoordinator}
+            className="w-full"
+          >
             Entrar como Coordinador (Modo Demo)
-          </ButtonLink>
+          </Button>
         </div>
       </form>
 

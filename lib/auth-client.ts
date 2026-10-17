@@ -56,16 +56,35 @@ export async function signIn(credentials: {
 
   // Si Better Auth funcionó correctamente y sin errores:
   if (result && !result.error) {
-    await fetch('/api/demo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: credentials.email,
-        role: 'coordinador',
-        firstName: credentials.email.split('@')[0],
-        lastName: '(Usuario)',
-      }),
-    }).catch(() => undefined)
+    try {
+      const profileRes = await fetch('/api/profile')
+      const profileData = await profileRes.json()
+      const p = profileData?.profile
+      await fetch('/api/demo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: result.data?.user?.id,
+          email: credentials.email,
+          role: p?.role || 'coordinador',
+          firstName: p?.first_name || credentials.email.split('@')[0],
+          lastName: p?.last_name || '',
+          organization: p?.organization || null,
+          verificationStatus: p?.verification_status || 'approved',
+        }),
+      })
+    } catch {
+      await fetch('/api/demo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: credentials.email,
+          role: 'coordinador',
+          firstName: credentials.email.split('@')[0],
+          lastName: '(Usuario)',
+        }),
+      }).catch(() => undefined)
+    }
     return
   }
 
