@@ -11,13 +11,14 @@ export const auth = betterAuth({
         ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
         : process.env.VERCEL_URL
           ? `https://${process.env.VERCEL_URL}`
-          : process.env.V0_RUNTIME_URL),
+          : 'https://bila-8lja.onrender.com'),
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
     minPasswordLength: 10,
   },
   trustedOrigins: [
+    'https://bila-8lja.onrender.com',
     ...(process.env.NODE_ENV === 'development'
       ? [
           'http://localhost:3000',
@@ -29,6 +30,7 @@ export const auth = betterAuth({
       : []),
     ...(process.env.NODE_ENV === 'production'
       ? [
+          'https://bila-8lja.onrender.com',
           ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
           ...(process.env.RENDER_EXTERNAL_URL ? [process.env.RENDER_EXTERNAL_URL] : []),
           ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
@@ -42,7 +44,7 @@ export const auth = betterAuth({
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
   },
-  ...(process.env.NODE_ENV === 'development'
+  ...(process.env.NODE_ENV === 'development' && process.env.BETTER_AUTH_URL?.startsWith('https')
     ? {
         advanced: {
           defaultCookieAttributes: {

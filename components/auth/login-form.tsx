@@ -110,7 +110,7 @@ export function LoginForm() {
             Iniciar sesión
           </Button>
 
-          <ButtonLink href="/espacio" variant="secondary" className="w-full">
+          <ButtonLink href="/api/auth/demo?role=coordinador" variant="secondary" className="w-full">
             Entrar como Coordinador (Modo Demo)
           </ButtonLink>
         </div>

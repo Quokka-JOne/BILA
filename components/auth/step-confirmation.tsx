@@ -8,9 +8,9 @@ import { StepHeading } from './step-heading'
 import type { Role } from './register-types'
 
 const next: Record<Role, { cta: string; href: string }> = {
-  persona: { cta: 'Ir al inicio de sesión', href: '/' },
-  rescatista: { cta: 'Ir al inicio de sesión', href: '/' },
-  coordinador: { cta: 'Ir al inicio de sesión', href: '/' },
+  persona: { cta: 'Continuar a mi espacio', href: '/espacio' },
+  rescatista: { cta: 'Continuar a mi espacio', href: '/espacio' },
+  coordinador: { cta: 'Continuar a mi espacio', href: '/espacio' },
 }
 
 export function StepConfirmation({ role, email }: { role: Role; email: string }) {

@@ -1,4 +1,4 @@
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { pool } from '@/lib/db'
@@ -15,6 +15,25 @@ export type Profile = {
 }
 
 export async function requireUser() {
+  // 1. Verificar si hay sesión demo o local guardada en cookie
+  try {
+    const cookieStore = await cookies()
+    const sessionCookie = cookieStore.get('bila_session')?.value
+    if (sessionCookie) {
+      const parsed = JSON.parse(sessionCookie)
+      if (parsed.userId) {
+        return {
+          id: parsed.userId as string,
+          email: parsed.email as string,
+          name: parsed.name as string,
+        }
+      }
+    }
+  } catch {
+    // Si falla el parseo de la cookie, continuar
+  }
+
+  // 2. Verificar Better Auth
   try {
     const session = await auth.api.getSession({ headers: await headers() })
     if (session?.user) return session.user
@@ -22,7 +41,7 @@ export async function requireUser() {
     console.warn('[BILA] Error verificando sesión en auth:', error)
   }
 
-  // En modo desarrollo, si no hay sesión activa o DB no responde, retornar usuario de demo
+  // 3. Fallback de desarrollo para modo demo
   if (process.env.NODE_ENV === 'development') {
     return {
       id: 'demo-coordinador-01',
@@ -35,6 +54,27 @@ export async function requireUser() {
 }
 
 export async function getProfile(userId: string): Promise<Profile | null> {
+  // 1. Si viene de sesión de cookie demo/local
+  try {
+    const cookieStore = await cookies()
+    const sessionCookie = cookieStore.get('bila_session')?.value
+    if (sessionCookie) {
+      const parsed = JSON.parse(sessionCookie)
+      if (parsed.userId === userId || userId.startsWith('demo-')) {
+        return {
+          role: parsed.role ?? 'coordinador',
+          firstName: parsed.firstName ?? 'Elena',
+          lastName: parsed.lastName ?? 'Morales',
+          organization: parsed.organization ?? null,
+          verificationStatus: parsed.verificationStatus ?? 'approved',
+        }
+      }
+    }
+  } catch {
+    // Si falla el parseo, continuar
+  }
+
+  // 2. Consultar PostgreSQL si está disponible
   try {
     const { rows } = await pool.query(
       `SELECT role, first_name, last_name, organization, verification_status
@@ -52,10 +92,11 @@ export async function getProfile(userId: string): Promise<Profile | null> {
       }
     }
   } catch (error) {
-    console.warn('[BILA] Base de datos no disponible, usando perfil de respaldo en dev:', error)
+    console.warn('[BILA] Base de datos no disponible, usando perfil de respaldo:', error)
   }
 
-  if (process.env.NODE_ENV === 'development') {
+  // 3. Si el usuario es de demo o en desarrollo
+  if (process.env.NODE_ENV === 'development' || userId.startsWith('demo-')) {
     return {
       role: 'coordinador',
       firstName: 'Elena',
@@ -76,7 +117,7 @@ export async function getLinkedDevices(userId: string): Promise<string[]> {
     )
     return rows.map((row) => row.code as string)
   } catch (error) {
-    console.warn('[BILA] Base de datos no disponible para dispositivos en dev:', error)
     return ['BILA-7842', 'BILA-9011']
   }
 }
+

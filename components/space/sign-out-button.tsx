@@ -15,8 +15,7 @@ export function SignOutButton() {
     try {
       await signOut()
     } finally {
-      router.replace('/')
-      router.refresh()
+      window.location.href = '/'
     }
   }
 
