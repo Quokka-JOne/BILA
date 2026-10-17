@@ -52,7 +52,11 @@ export async function signIn(credentials: {
     })
   } catch (error) {
     console.warn('[BILA] Base de datos o auth no disponible, iniciando sesión local:', error)
-    await fetch('/api/auth/demo', {
+  }
+
+  // Si Better Auth funcionó correctamente y sin errores:
+  if (result && !result.error) {
+    await fetch('/api/demo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -64,41 +68,39 @@ export async function signIn(credentials: {
     }).catch(() => undefined)
     return
   }
-  if (result?.error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[BILA Dev] Error en auth remoto, permitiendo acceso local:', result.error)
-      await fetch('/api/auth/demo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: credentials.email,
-          role: 'coordinador',
-          firstName: credentials.email.split('@')[0],
-          lastName: '(Usuario)',
-        }),
-      }).catch(() => undefined)
-      return
-    }
-    throw mapAuthError(result.error)
+
+  // Si falló por error de servidor o conexión a base de datos (status 500 o similar)
+  // o si estamos en desarrollo o modo fallback:
+  const isServerOrDbError =
+    !result ||
+    result?.error?.status === 500 ||
+    result?.error?.status === 503 ||
+    result?.error?.message?.toLowerCase().includes('database') ||
+    result?.error?.message?.toLowerCase().includes('schema') ||
+    result?.error?.message?.toLowerCase().includes('failed to fetch')
+
+  if (isServerOrDbError || process.env.NODE_ENV === 'development') {
+    console.warn('[BILA] Base de datos no disponible o dev, permitiendo acceso local:', result?.error)
+    await fetch('/api/demo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: credentials.email,
+        role: 'coordinador',
+        firstName: credentials.email.split('@')[0],
+        lastName: '(Usuario)',
+      }),
+    }).catch(() => undefined)
+    return
   }
 
-  // Establecer también cookie de sesión local para compatibilidad
-  await fetch('/api/auth/demo', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email: credentials.email,
-      role: 'coordinador',
-      firstName: credentials.email.split('@')[0],
-      lastName: '(Usuario)',
-    }),
-  }).catch(() => undefined)
+  throw mapAuthError(result?.error)
 }
 
 export async function signOut(): Promise<void> {
   try {
-    await authClient.signOut()
-    await fetch('/api/auth/demo', {
+    await authClient.signOut().catch(() => undefined)
+    await fetch('/api/demo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'logout' }),
@@ -148,7 +150,7 @@ export async function createAccount(payload: NewAccount): Promise<void> {
         ? (payload.profile as unknown as { organization?: string }).organization
         : null
 
-    await fetch('/api/auth/demo', {
+    await fetch('/api/demo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

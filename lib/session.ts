@@ -60,7 +60,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     const sessionCookie = cookieStore.get('bila_session')?.value
     if (sessionCookie) {
       const parsed = JSON.parse(sessionCookie)
-      if (parsed.userId === userId || userId.startsWith('demo-')) {
+      if (parsed.userId === userId || userId.startsWith('demo-') || userId.startsWith('user-')) {
         return {
           role: parsed.role ?? 'coordinador',
           firstName: parsed.firstName ?? 'Elena',
@@ -95,8 +95,12 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     console.warn('[BILA] Base de datos no disponible, usando perfil de respaldo:', error)
   }
 
-  // 3. Si el usuario es de demo o en desarrollo
-  if (process.env.NODE_ENV === 'development' || userId.startsWith('demo-')) {
+  // 3. Si el usuario es de demo, local o en desarrollo
+  if (
+    process.env.NODE_ENV === 'development' ||
+    userId.startsWith('demo-') ||
+    userId.startsWith('user-')
+  ) {
     return {
       role: 'coordinador',
       firstName: 'Elena',

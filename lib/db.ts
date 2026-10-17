@@ -12,7 +12,7 @@ export const pool =
     connectionString: process.env.DATABASE_URL,
     ssl: isNeon || process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
     max: 5,
-    connectionTimeoutMillis: 3000,
+    connectionTimeoutMillis: 1000,
   })
 
 if (process.env.NODE_ENV !== 'production') globalForDb.bilaPool = pool

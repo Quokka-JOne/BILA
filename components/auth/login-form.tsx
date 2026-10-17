@@ -24,7 +24,13 @@ export function LoginForm() {
   }))
 
   useEffect(() => {
-    if (status === 'success') successRef.current?.querySelector<HTMLElement>('[data-step-heading]')?.focus()
+    if (status === 'success') {
+      successRef.current?.querySelector<HTMLElement>('[data-step-heading]')?.focus()
+      const timer = setTimeout(() => {
+        window.location.href = '/espacio'
+      }, 700)
+      return () => clearTimeout(timer)
+    }
   }, [status])
 
   async function handleSubmit(event: React.FormEvent) {
@@ -110,7 +116,7 @@ export function LoginForm() {
             Iniciar sesión
           </Button>
 
-          <ButtonLink href="/api/auth/demo?role=coordinador" variant="secondary" className="w-full">
+          <ButtonLink href="/api/demo?role=coordinador" variant="secondary" className="w-full">
             Entrar como Coordinador (Modo Demo)
           </ButtonLink>
         </div>
